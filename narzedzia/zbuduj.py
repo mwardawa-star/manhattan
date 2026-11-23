@@ -136,10 +136,11 @@ async function startDysk(btn) {
     el('konto').insertAdjacentHTML('beforeend', ' · <a href="#" id="archLok"></a>');
     archLokalne.pokaz();
   };
-  const otworz = async () => {
-    btn.disabled = true; info('Łączę z Dyskiem Google…');
+  const otworz = async auto => {
+    btn.disabled = true; info(auto ? 'Loguję kontem Google…' : 'Łączę z Dyskiem Google…');
     try {
-      await DYSK.zaloguj();
+      await DYSK.zaloguj(auto === true);
+      info('Łączę z Dyskiem Google…');
       const mail = await DYSK.kontoEmail();
       const gl = await DYSK.folderGlowny(false);
       let gotowe = false;
@@ -158,10 +159,10 @@ async function startDysk(btn) {
       }
       pokazKonto(mail);
       await start(gl);
-    } catch (e) { btn.disabled = false; btn.textContent = 'Zaloguj kontem Google'; btn.onclick = otworz; info(e.message); }
+    } catch (e) { btn.disabled = false; btn.textContent = 'Zaloguj kontem Google'; btn.onclick = () => otworz(false); info(e.message); }
   };
-  btn.textContent = 'Zaloguj kontem Google'; btn.disabled = false; btn.onclick = otworz;
-  try { if (sessionStorage.getItem('manhattan_g')) await otworz(); } catch {}      // odświeżenie strony – bez ponownego klikania
+  btn.textContent = 'Zaloguj kontem Google'; btn.disabled = false; btn.onclick = () => otworz(false);
+  await otworz(true);         // po cichu: zapamiętany klucz albo szybkie przejście przez Google bez klikania
 }
 
 let SQL;
@@ -174,6 +175,13 @@ ZMIANY.append((
 ZMIANY.append((
  "window.SHELL.archiwum = wymus => archiwumTygodniowe(SHELL._dir, wymus);",
  "let archTrwa = Promise.resolve();\nwindow.SHELL.archiwum = wymus => (archTrwa = archTrwa.catch(() => {}).then(() => archiwumTygodniowe(SHELL._dir, wymus))).finally(() => window.SHELL.poArchiwum && SHELL.poArchiwum());"))
+
+# dane nie pokazują się pod ekranem startowym, zanim program zapyta o hasło
+ZMIANY.append(("body.zablokowany #shell, body.zablokowany #appK, body.zablokowany #appR { display:none !important; }",
+ "body.zablokowany #shell, body.zablokowany #appK, body.zablokowany #appR { display:none !important; }\nbody.ladowanie #appK, body.ladowanie #appR { display:none !important; }"))
+ZMIANY.append(("<body>\n<div id=\"logowanie\" class=\"hidden\">", "<body class=\"ladowanie\">\n<div id=\"logowanie\" class=\"hidden\">"))
+ZMIANY.append(("  el('powitanie').classList.add('hidden'); el('shell').classList.remove('hidden');",
+ "  el('powitanie').classList.add('hidden'); el('shell').classList.remove('hidden'); document.body.classList.remove('ladowanie');"))
 
 for stare, nowe in ZMIANY:
     n = zrodlo.count(stare)

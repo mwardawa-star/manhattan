@@ -51,6 +51,7 @@ body { margin:0; font:15px/1.45 "Segoe UI", Arial, sans-serif; color:#1b1f24; ba
 #btnBlokuj { font:inherit; font-size:13px; background:#fff; border:1px solid var(--brd); border-radius:6px; padding:4px 10px; cursor:pointer; align-self:center; }
 #btnBlokuj:hover { background:var(--acc2); }
 body.zablokowany #shell, body.zablokowany #appK, body.zablokowany #appR { display:none !important; }
+body.ladowanie #appK, body.ladowanie #appR { display:none !important; }
 .uz-tab td, .uz-tab th { padding:4px 10px 4px 0; text-align:left; }
 @media print {
   #shell, #powitanie { display:none !important; }
@@ -359,7 +360,7 @@ body { padding-top:env(safe-area-inset-top); }
 }
 </style>
 </head>
-<body>
+<body class="ladowanie">
 <div id="logowanie" class="hidden">
   <h2>🔒 Manhattan – logowanie</h2>
   <form id="logForm" autocomplete="off">
@@ -3438,7 +3439,7 @@ async function start(dir) {
   el('info').textContent = 'Otwieram kasę…';
   if (!(await APP_R.attach(SQL, rd))) return;
   if (uzytkownicy().length) zablokuj();          // najpierw blokada – żeby dane nie mignęły na ekranie przed logowaniem
-  el('powitanie').classList.add('hidden'); el('shell').classList.remove('hidden');
+  el('powitanie').classList.add('hidden'); el('shell').classList.remove('hidden'); document.body.classList.remove('ladowanie');
   let ost = 'R|kasa'; try { ost = localStorage.getItem('manhattan_widok') || ost; } catch {}
   const [a, v] = ost.split('|'); const s = SEKCJE.find(x => x.poz.some(p => p[0] === a && p[1] === v)) || SEKCJE[0];
   aktSekcja = s.id; rysujMenu(); otworz(a, v);
@@ -3512,10 +3513,11 @@ async function startDysk(btn) {
     el('konto').insertAdjacentHTML('beforeend', ' · <a href="#" id="archLok"></a>');
     archLokalne.pokaz();
   };
-  const otworz = async () => {
-    btn.disabled = true; info('Łączę z Dyskiem Google…');
+  const otworz = async auto => {
+    btn.disabled = true; info(auto ? 'Loguję kontem Google…' : 'Łączę z Dyskiem Google…');
     try {
-      await DYSK.zaloguj();
+      await DYSK.zaloguj(auto === true);
+      info('Łączę z Dyskiem Google…');
       const mail = await DYSK.kontoEmail();
       const gl = await DYSK.folderGlowny(false);
       let gotowe = false;
@@ -3534,10 +3536,10 @@ async function startDysk(btn) {
       }
       pokazKonto(mail);
       await start(gl);
-    } catch (e) { btn.disabled = false; btn.textContent = 'Zaloguj kontem Google'; btn.onclick = otworz; info(e.message); }
+    } catch (e) { btn.disabled = false; btn.textContent = 'Zaloguj kontem Google'; btn.onclick = () => otworz(false); info(e.message); }
   };
-  btn.textContent = 'Zaloguj kontem Google'; btn.disabled = false; btn.onclick = otworz;
-  try { if (sessionStorage.getItem('manhattan_g')) await otworz(); } catch {}      // odświeżenie strony – bez ponownego klikania
+  btn.textContent = 'Zaloguj kontem Google'; btn.disabled = false; btn.onclick = () => otworz(false);
+  await otworz(true);         // po cichu: zapamiętany klucz albo szybkie przejście przez Google bez klikania
 }
 
 let SQL;

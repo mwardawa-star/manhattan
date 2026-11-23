@@ -18,9 +18,40 @@ const UPL = 'https://www.googleapis.com/upload/drive/v3/files';
 const FOLDER = 'application/vnd.google-apps.folder';
 const NAZWA_GLOWNEGO = 'Manhattan – dane programu';
 
-/* ---------- logowanie (token dostępu, ważny ok. 1 godziny) ---------- */
-let klient = null, token = '', wygasa = 0, oczekujace = null, pasekOdnow = null;
-try { const z = JSON.parse(sessionStorage.getItem('manhattan_g') || 'null'); if (z && z.w > Date.now() + 60000) { token = z.t; wygasa = z.w; } } catch {}
+/* ---------- logowanie (token dostępu, ważny ok. 1 godziny) ----------
+   Przy otwarciu programu logowanie idzie „przez przekierowanie”: strona na chwilę przechodzi do Google
+   i wraca z kluczem dostępu. Jeśli w przeglądarce jesteś zalogowany na konto Google i zgoda była już
+   udzielona – dzieje się to samo, bez klikania (prompt=none). Klucz trzymamy do wygaśnięcia (ok. 1 h),
+   więc ponowne otwarcie programu w tym czasie nie wymaga nawet przekierowania. */
+let klient = null, token = '', wygasa = 0, oczekujace = null, pasekOdnow = null, bladPowrotu = '';
+const K_TOKEN = 'manhattan_g', K_STAN = 'manhattan_oauth_stan', K_KONTO = 'manhattan_konto';
+function zapiszToken(t, sek) {
+  token = t; wygasa = Date.now() + (+sek || 3600) * 1000;
+  try { localStorage.setItem(K_TOKEN, JSON.stringify({t: token, w: wygasa})); } catch {}
+}
+try { const z = JSON.parse(localStorage.getItem(K_TOKEN) || 'null'); if (z && z.w > Date.now() + 120000) { token = z.t; wygasa = z.w; } } catch {}
+// powrót z Google (adres strony kończy się na #access_token=… albo #error=…)
+(function powrot() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (!h.has('access_token') && !h.has('error')) return;
+  let stan = ''; try { stan = sessionStorage.getItem(K_STAN) || ''; sessionStorage.removeItem(K_STAN); } catch {}
+  history.replaceState(null, '', location.pathname + location.search);       // klucz nie zostaje w pasku adresu
+  if (!stan || h.get('state') !== stan) { bladPowrotu = 'zly_stan'; return; }
+  if (h.get('error')) { bladPowrotu = h.get('error'); return; }
+  if (!(h.get('scope') || '').split(' ').includes(ZAKRES)) { bladPowrotu = 'brak_zgody'; return; }
+  zapiszToken(h.get('access_token'), h.get('expires_in'));
+})();
+const adresPowrotu = () => CFG.adresPowrotu || (location.origin + location.pathname.replace(/index\.html$/, ''));
+function przekieruj(cicho) {
+  const stan = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+  try { sessionStorage.setItem(K_STAN, stan); } catch {}
+  const p = new URLSearchParams({client_id: CFG.clientId, redirect_uri: adresPowrotu(), response_type: 'token', scope: ZAKRES, include_granted_scopes: 'true', state: stan});
+  let konto = ''; try { konto = localStorage.getItem(K_KONTO) || ''; } catch {}
+  if (konto) p.set('login_hint', konto);
+  if (cicho) p.set('prompt', 'none'); else if (!konto) p.set('prompt', 'select_account');
+  location.assign('https://accounts.google.com/o/oauth2/v2/auth?' + p);
+  return new Promise(() => {});                    // strona i tak zaraz przechodzi do Google
+}
 
 function czekajNaGIS() {
   return new Promise((ok, zle) => { let n = 0;
@@ -38,8 +69,7 @@ async function przygotuj() {
       const o = oczekujace; oczekujace = null;
       if (r.error || !r.access_token) { o && o.zle(new Error('Logowanie Google nie powiodło się: ' + (r.error_description || r.error || '?'))); return; }
       if (!google.accounts.oauth2.hasGrantedAllScopes(r, ZAKRES)) { o && o.zle(new Error('Nie udzielono programowi dostępu do jego plików na Dysku Google. Zaloguj się jeszcze raz i zaznacz zgodę.')); return; }
-      token = r.access_token; wygasa = Date.now() + (r.expires_in || 3600) * 1000;
-      try { sessionStorage.setItem('manhattan_g', JSON.stringify({t: token, w: wygasa})); } catch {}
+      zapiszToken(r.access_token, r.expires_in);
       if (pasekOdnow) { pasekOdnow.remove(); pasekOdnow = null; }
       o && o.ok(token);
     },
@@ -54,11 +84,17 @@ function popros(prompt) {
     klient.requestAccessToken(opcje);
   });
 }
-// pierwsze logowanie – zawsze po kliknięciu przycisku
-async function zaloguj() {
-  await przygotuj();
+// auto = true: przy otwarciu programu – po cichu (bez klikania), o ile wcześniej już się logowano na tym urządzeniu
+// auto = false: kliknięty przycisk „Zaloguj kontem Google”
+async function zaloguj(auto) {
+  if (!CFG.clientId) throw new Error('Brak identyfikatora logowania Google (config.js → clientId).');
   if (token && wygasa > Date.now() + 120000) return token;
-  return popros('');
+  if (auto) {
+    let konto = ''; try { konto = localStorage.getItem(K_KONTO) || ''; } catch {}
+    if (bladPowrotu || !konto) throw Object.assign(new Error(bladPowrotu === 'access_denied' ? 'Nie udzielono zgody na logowanie Google.' : ''), {klik: true});
+    return przekieruj(true);
+  }
+  return przekieruj(false);
 }
 // odświeżenie w trakcie pracy; gdy przeglądarka zablokuje okienko – pasek z przyciskiem
 let odnawianie = null;
@@ -84,7 +120,7 @@ async function wazny() {
 }
 function wyloguj() {
   try { if (token) google.accounts.oauth2.revoke(token, () => {}); } catch {}
-  token = ''; wygasa = 0; try { sessionStorage.removeItem('manhattan_g'); } catch {}
+  token = ''; wygasa = 0; try { localStorage.removeItem(K_TOKEN); localStorage.removeItem(K_KONTO); } catch {}
 }
 
 /* ---------- zapytania do Dysku Google ---------- */
