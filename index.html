@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Manhattan – kasa, wspólnicy, umowy</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#1f2329">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -43,7 +43,8 @@ body { margin:0; font:15px/1.45 "Segoe UI", Arial, sans-serif; color:#1b1f24; ba
   #appK main, #appR main { padding:10px; }
   #appK table.grid, #appR table.grid { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   #appK table.grid th { top:0; }
-  body { padding-top:env(safe-area-inset-top); }          /* iPhone: nic nie wchodzi pod zegar i baterię */
+  body { padding-top:env(safe-area-inset-top); }
+  input, select, textarea { font-size:16px !important; }   /* iPhone powiększa ekran przy polach z mniejszą czcionką (np. hasło przy starcie) */          /* iPhone: nic nie wchodzi pod zegar i baterię */
   #appK .umowy-lay, #appK .umowy-lay .form { grid-template-columns:1fr !important; }
   #appK .umowy-lay > *, #appK .umowy-lay .form > * { min-width:0; }
   #appK input, #appK select, #appK textarea, #appR input, #appR select, #appR textarea { max-width:100%; box-sizing:border-box; }

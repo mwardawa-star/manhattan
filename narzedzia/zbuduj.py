@@ -13,7 +13,7 @@ wynik = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else 'index.html')
 ZMIANY = [
 # 1. nagłówek strony: ikona na telefonie, tryb pełnoekranowy, logowanie Google, obsługa Dysku
 ('<meta name="viewport" content="width=device-width, initial-scale=1">',
- '''<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+ '''<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#1f2329">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -198,7 +198,8 @@ ZMIANY.append(("#statusy .err { color:var(--warn); font-weight:600; }",
   #appK main, #appR main { padding:10px; }
   #appK table.grid, #appR table.grid { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   #appK table.grid th { top:0; }
-  body { padding-top:env(safe-area-inset-top); }          /* iPhone: nic nie wchodzi pod zegar i baterię */
+  body { padding-top:env(safe-area-inset-top); }
+  input, select, textarea { font-size:16px !important; }   /* iPhone powiększa ekran przy polach z mniejszą czcionką (np. hasło przy starcie) */          /* iPhone: nic nie wchodzi pod zegar i baterię */
   #appK .umowy-lay, #appK .umowy-lay .form { grid-template-columns:1fr !important; }
   #appK .umowy-lay > *, #appK .umowy-lay .form > * { min-width:0; }
   #appK input, #appK select, #appK textarea, #appR input, #appR select, #appR textarea { max-width:100%; box-sizing:border-box; }
