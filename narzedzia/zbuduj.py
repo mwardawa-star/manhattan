@@ -137,7 +137,8 @@ async function startDysk(btn) {
     archLokalne.pokaz();
   };
   const otworz = async auto => {
-    btn.disabled = true; info(auto ? 'Loguję kontem Google…' : 'Łączę z Dyskiem Google…');
+    btn.disabled = true; btn.style.visibility = auto === true ? 'hidden' : '';   // przy automatycznym otwieraniu przycisk się nie pokazuje
+    info(auto ? 'Otwieram program…' : 'Łączę z Dyskiem Google…');
     try {
       await DYSK.zaloguj(auto === true);
       info('Łączę z Dyskiem Google…');
@@ -148,7 +149,7 @@ async function startDysk(btn) {
       if (!gotowe) {
         el('opisStartu').innerHTML = `Na Dysku Google konta <b>${mail.replace(/[&<>"]/g, '')}</b> nie ma jeszcze danych programu.<br>` +
           'Przenieś je z laptopa: kliknij przycisk i wskaż folder <b>D:\\\\MegaSync\\\\Manhattan\\\\Dokumenty</b>. Przeglądarka zapyta o zgodę – kliknij „Wyświetl pliki” i „Zapisz zmiany”.';
-        btn.textContent = 'Przenieś dane z laptopa na Dysk Google'; btn.disabled = false; info('');
+        btn.textContent = 'Przenieś dane z laptopa na Dysk Google'; btn.disabled = false; btn.style.visibility = ''; info('');
         btn.onclick = async () => {
           btn.disabled = true;
           try { const r = await DYSK.przeniesZLaptopa(info);
@@ -159,7 +160,7 @@ async function startDysk(btn) {
       }
       pokazKonto(mail);
       await start(gl);
-    } catch (e) { btn.disabled = false; btn.textContent = 'Zaloguj kontem Google'; btn.onclick = () => otworz(false); info(e.message); }
+    } catch (e) { btn.disabled = false; btn.style.visibility = ''; btn.textContent = 'Zaloguj kontem Google'; btn.onclick = () => otworz(false); info(e.message); }
   };
   btn.textContent = 'Zaloguj kontem Google'; btn.disabled = false; btn.onclick = () => otworz(false);
   await otworz(true);         // po cichu: zapamiętany klucz albo szybkie przejście przez Google bez klikania
@@ -197,6 +198,10 @@ ZMIANY.append(("#statusy .err { color:var(--warn); font-weight:600; }",
   #appK main, #appR main { padding:10px; }
   #appK table.grid, #appR table.grid { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   #appK table.grid th { top:0; }
+  body { padding-top:env(safe-area-inset-top); }          /* iPhone: nic nie wchodzi pod zegar i baterię */
+  #appK .umowy-lay, #appK .umowy-lay .form { grid-template-columns:1fr !important; }
+  #appK .umowy-lay > *, #appK .umowy-lay .form > * { min-width:0; }
+  #appK input, #appK select, #appK textarea, #appR input, #appR select, #appR textarea { max-width:100%; box-sizing:border-box; }
   #appR .cols > *, #appK main > * { min-width:0; }
 }"""))
 
