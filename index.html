@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#1f2329">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Manhattan">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="Manhattan.ico">
@@ -32,6 +32,19 @@ body { margin:0; font:15px/1.45 "Segoe UI", Arial, sans-serif; color:#1b1f24; ba
 #sekcje button.on { background:var(--acc); color:#fff; }
 #statusy { margin-left:auto; font-size:12.5px; color:#555; text-align:right; line-height:1.35; padding-bottom:6px; }
 #statusy .err { color:var(--warn); font-weight:600; }
+@media screen and (max-width:760px) {
+  html, body { max-width:100%; overflow-x:hidden; }
+  #shell { position:static; }
+  #shell .top { gap:6px 10px; padding:6px 10px 0; }
+  #shell h1 { font-size:16px; } #shell h1 small, #statusy { display:none; }
+  #sekcje { width:100%; flex-wrap:wrap; } #sekcje button { padding:6px 10px; white-space:nowrap; border-radius:8px; }
+  #konto { width:100%; margin:0 0 4px; }
+  #podmenu { padding:5px 8px; gap:2px; flex-wrap:nowrap; overflow-x:auto; } #podmenu button { white-space:nowrap; padding:4px 8px; }
+  #appK main, #appR main { padding:10px; }
+  #appK table.grid, #appR table.grid { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  #appK table.grid th { top:0; }
+  #appR .cols > *, #appK main > * { min-width:0; }
+}
 #podmenu { display:flex; gap:4px; flex-wrap:wrap; padding:6px 16px; background:var(--acc2); border-top:3px solid var(--acc); }
 #podmenu button { font:inherit; background:none; border:1px solid transparent; border-radius:6px; padding:4px 11px; cursor:pointer; }
 #podmenu button:hover { background:#fff; }
@@ -324,7 +337,6 @@ a { color:#8cbcff; }
 #podmenu button:hover, #podmenu button.on { background:var(--pow2); }
 #podmenu button.on { color:#8cbcff; border-color:var(--acc); }
 #powitanie, #logowanie { background:var(--pow); border-color:var(--brd); }
-body { padding-top:env(safe-area-inset-top); }
 #konto { color:var(--txt2); font-size:12px; margin-left:8px; }
 #konto a { color:var(--txt2); }
 #powitanie .muted, #logowanie .muted, #logowanie label { color:var(--txt2); }

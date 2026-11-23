@@ -18,7 +18,7 @@ ZMIANY = [
 <meta name="theme-color" content="#1f2329">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Manhattan">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="Manhattan.ico">
@@ -30,7 +30,7 @@ ZMIANY = [
 # 2. pasek stanu na iPhonie (wycięcie ekranu) – odstęp u góry w trybie pełnoekranowym
 ('#powitanie, #logowanie { background:var(--pow); border-color:var(--brd); }',
  '#powitanie, #logowanie { background:var(--pow); border-color:var(--brd); }\n'
- 'body { padding-top:env(safe-area-inset-top); }\n#konto { color:var(--txt2); font-size:12px; margin-left:8px; }\n'
+ '#konto { color:var(--txt2); font-size:12px; margin-left:8px; }\n'
  '#konto a { color:var(--txt2); }'),
 
 # 3. ekran startowy
@@ -182,6 +182,23 @@ ZMIANY.append(("body.zablokowany #shell, body.zablokowany #appK, body.zablokowan
 ZMIANY.append(("<body>\n<div id=\"logowanie\" class=\"hidden\">", "<body class=\"ladowanie\">\n<div id=\"logowanie\" class=\"hidden\">"))
 ZMIANY.append(("  el('powitanie').classList.add('hidden'); el('shell').classList.remove('hidden');",
  "  el('powitanie').classList.add('hidden'); el('shell').classList.remove('hidden'); document.body.classList.remove('ladowanie');"))
+
+# telefon: nagłówek nie przykleja się do góry i jest niższy, tabele przewijają się w bok (strona nie robi się szersza od ekranu)
+ZMIANY.append(("#statusy .err { color:var(--warn); font-weight:600; }",
+"""#statusy .err { color:var(--warn); font-weight:600; }
+@media screen and (max-width:760px) {
+  html, body { max-width:100%; overflow-x:hidden; }
+  #shell { position:static; }
+  #shell .top { gap:6px 10px; padding:6px 10px 0; }
+  #shell h1 { font-size:16px; } #shell h1 small, #statusy { display:none; }
+  #sekcje { width:100%; flex-wrap:wrap; } #sekcje button { padding:6px 10px; white-space:nowrap; border-radius:8px; }
+  #konto { width:100%; margin:0 0 4px; }
+  #podmenu { padding:5px 8px; gap:2px; flex-wrap:nowrap; overflow-x:auto; } #podmenu button { white-space:nowrap; padding:4px 8px; }
+  #appK main, #appR main { padding:10px; }
+  #appK table.grid, #appR table.grid { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  #appK table.grid th { top:0; }
+  #appR .cols > *, #appK main > * { min-width:0; }
+}"""))
 
 for stare, nowe in ZMIANY:
     n = zrodlo.count(stare)
