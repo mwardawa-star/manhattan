@@ -69,7 +69,63 @@ ZMIANY = [
 
 ('''let SQL;
 window.SHELL._start = async (sql, dir) => { SQL = sql; await start(dir); };''',
- '''/* ---- wersja z GitHuba: logowanie Google, dane na Dysku Google (dysk.js) ---- */
+ '''/* ---- archiwum także na dysku laptopa (np. D:\\\\Archiwum\\\\Manhattan) ----
+   Archiwum tygodniowe powstaje na Dysku Google (folder Archiwum). Jeśli w tej przeglądarce wskazano folder na laptopie,
+   program dokopiowuje tam każde archiwum, którego jeszcze tam nie ma (także te zrobione na telefonie).
+   Folder pamięta przeglądarka; gdy prosi o ponowną zgodę – w nagłówku pojawia się „📁 zapisz archiwum na laptopie”. */
+const archLokalne = {
+  async folder() { return await kvGet('arch_lok'); },
+  async pokaz(stan) {
+    const a = el('archLok'); if (!a) return;
+    const f = await this.folder();
+    if (!window.showDirectoryPicker) { a.remove(); return; }
+    if (!f) { a.textContent = '📁 ustaw archiwum na laptopie'; a.title = 'Wskaż folder, np. D:\\\\Archiwum\\\\Manhattan'; }
+    else if (stan === 'czeka') { a.textContent = '📁 zapisz archiwum na laptopie'; a.title = `Folder: ${f.name} – kliknij, żeby dokopiować nowe archiwum`; }
+    else if (stan) { a.textContent = '📁 ' + stan; a.title = `Folder: ${f.name}`; }
+    else { a.textContent = `📁 archiwum: ${f.name}`; a.title = 'Kliknij, żeby zmienić folder albo dokopiować archiwum'; }
+    a.onclick = async e => { e.preventDefault();
+      let f2 = await this.folder();
+      try {
+        if (!f2 || (await f2.requestPermission({mode: 'readwrite'})) !== 'granted' || e.shiftKey) {
+          alert('Wskaż folder na laptopie na kopie archiwum, np. D:\\\\Archiwum\\\\Manhattan.');
+          f2 = await window.showDirectoryPicker({id: 'manhattan-archiwum', mode: 'readwrite'}); await kvSet('arch_lok', f2);
+        }
+        await this.kopiuj(true);
+      } catch (er) { if (er.name !== 'AbortError') alert('Archiwum na laptopie: ' + er.message); this.pokaz(); }
+    };
+  },
+  async kopiujKatalog(z, cel) {
+    for await (const [n, h] of z.entries()) {
+      if (h.kind === 'directory') await this.kopiujKatalog(h, await cel.getDirectoryHandle(n, {create: true}));
+      else { const plik = await h.getFile(); const w = await (await cel.getFileHandle(n, {create: true})).createWritable(); await w.write(plik); await w.close(); }
+    }
+  },
+  kopiuj(klik) {                       // jedno kopiowanie naraz (automatyczne po archiwum i kliknięcie nie mogą się nałożyć)
+    const p = (this._trwa || Promise.resolve()).then(() => this._kopiuj(klik), () => this._kopiuj(klik));
+    this._trwa = p.catch(() => {}); return p;
+  },
+  async _kopiuj(klik) {
+    const f = await this.folder(); if (!f || !SHELL._dir) return;
+    if ((await f.queryPermission({mode: 'readwrite'})) !== 'granted') { if (!klik) return this.pokaz('czeka');
+      if ((await f.requestPermission({mode: 'readwrite'})) !== 'granted') return this.pokaz('czeka'); }
+    let ad; try { ad = await SHELL._dir.getDirectoryHandle('Archiwum'); } catch { return this.pokaz(); }
+    const sa = []; for await (const [n, h] of ad.entries()) if (h.kind === 'directory' && /^\\d{4}-\\d\\d-\\d\\d$/.test(n)) sa.push([n, h]);
+    const sa_lok = new Set(); for await (const [n, h] of f.entries()) if (h.kind === 'directory') sa_lok.add(n);
+    const nowe = sa.filter(([n]) => !sa_lok.has(n)).sort();
+    for (const [i, [n, h]] of nowe.entries()) {
+      this.pokaz(`kopiuję archiwum ${n} (${i + 1}/${nowe.length})…`);
+      const tmp = await f.getDirectoryHandle(n + '.kopiowanie', {create: true});
+      await this.kopiujKatalog(h, tmp);
+      // gotowy folder dostaje docelową nazwę dopiero po skopiowaniu wszystkiego (przerwane kopiowanie nie udaje pełnego archiwum)
+      if (tmp.move) await tmp.move(n); else { await this.kopiujKatalog(tmp, await f.getDirectoryHandle(n, {create: true})); await f.removeEntry(n + '.kopiowanie', {recursive: true}); }
+    }
+    this.pokaz(nowe.length ? `skopiowano archiwum (${nowe.length}) do: ${f.name}` : '');
+  },
+};
+window.SHELL._archLok = archLokalne;
+window.SHELL.poArchiwum = () => archLokalne.kopiuj(false).catch(e => { console.warn('Archiwum na laptopie:', e); archLokalne.pokaz('błąd kopii archiwum – kliknij'); });
+
+/* ---- wersja z GitHuba: logowanie Google, dane na Dysku Google (dysk.js) ---- */
 async function startDysk(btn) {
   el('inny').classList.add('hidden');
   const info = t => { el('info').textContent = t; };
@@ -77,6 +133,8 @@ async function startDysk(btn) {
     el('konto').innerHTML = `${mail ? mail.replace(/[&<>"]/g, '') + ' · ' : ''}<a href="#" id="wylogujG">wyloguj Google</a>`;
     el('wylogujG').onclick = e => { e.preventDefault(); if (!confirm('Wylogować z konta Google? Program się zamknie.')) return;
       DYSK.wyloguj(); location.reload(); };
+    el('konto').insertAdjacentHTML('beforeend', ' · <a href="#" id="archLok"></a>');
+    archLokalne.pokaz();
   };
   const otworz = async () => {
     btn.disabled = true; info('Łączę z Dyskiem Google…');
@@ -109,6 +167,13 @@ async function startDysk(btn) {
 let SQL;
 window.SHELL._start = async (sql, dir) => { SQL = sql; await start(dir); };'''),
 ]
+
+ZMIANY.append((
+ "setTimeout(() => archiwumTygodniowe(dir).catch(e => console.warn('Archiwum:', e)), 5000);",
+ "setTimeout(() => window.SHELL.archiwum(false).catch(e => console.warn('Archiwum:', e)), 5000);"))
+ZMIANY.append((
+ "window.SHELL.archiwum = wymus => archiwumTygodniowe(SHELL._dir, wymus);",
+ "let archTrwa = Promise.resolve();\nwindow.SHELL.archiwum = wymus => (archTrwa = archTrwa.catch(() => {}).then(() => archiwumTygodniowe(SHELL._dir, wymus))).finally(() => window.SHELL.poArchiwum && SHELL.poArchiwum());"))
 
 for stare, nowe in ZMIANY:
     n = zrodlo.count(stare)

@@ -16,6 +16,8 @@ Bazy to te same pliki SQLite co wcześniej: `Księga udziałów/ksiega.sqlite` i
 - `RapKas/Faktury`: PDF-y faktur dodane przyciskiem „Dodaj pliki PDF…”,
 - `Archiwum/RRRR-MM-DD`: archiwum tygodniowe (Excel, CSV, kopie baz).
 
+**Archiwum na laptopie:** w nagłówku kliknij „📁 ustaw archiwum na laptopie” i wskaż folder `D:\Archiwum\Manhattan`. Od tej pory przy każdym otwarciu programu na laptopie (Edge/Chrome) brakujące archiwa z Dysku Google dokopiowują się do tego folderu. Dotyczy to też archiwów zrobionych na telefonie. Gdy przeglądarka poprosi o ponowną zgodę, w nagłówku pojawi się „📁 zapisz archiwum na laptopie”: wystarczy kliknąć.
+
 **Ochrona przed nadpisaniem:** jeśli w czasie pracy dane zmieni inne urządzenie, program wstrzyma zapis i poprosi o odświeżenie (F5). Nic nie zostanie nadpisane.
 
 ## Pierwsze uruchomienie (przeniesienie danych z MEGA)
